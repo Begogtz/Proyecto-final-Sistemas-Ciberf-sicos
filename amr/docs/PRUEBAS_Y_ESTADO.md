@@ -34,3 +34,28 @@ Para cerrar la prueba en el registro de calidad se recomienda conservar:
 - Cada encoder cambia de forma coherente con su motor.
 - Cada velocidad tiene signo y magnitud coherentes con el comando.
 - El paro final lleva las referencias a cero de manera controlada.
+
+## Lectura de PID y QPPS
+
+Se implementó la lectura de los parámetros del controlador de velocidad configurados en los RoboClaw mediante Packet Serial.
+
+El firmware permite consultar los siguientes parámetros:
+
+- Ganancia proporcional P.
+- Ganancia integral I.
+- Ganancia derivativa D.
+- QPPS (Quadrature Pulses Per Second).
+
+La lectura está implementada para los cuatro canales de control:
+
+- RoboClaw A - M1
+- RoboClaw A - M2
+- RoboClaw B - M1
+- RoboClaw B - M2
+
+Los comandos utilizados son:
+
+- Comando 55: lectura de Velocity PID de M1.
+- Comando 56: lectura de Velocity PID de M2.
+
+La lectura de los parámetros PID/QPPS fue validada correctamente mediante comunicación entre la FRDM-A-S32K344 y los controladores RoboClaw.
