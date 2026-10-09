@@ -26,6 +26,9 @@
 
 #define CMD_M1_M2_SPEED_ACCEL    40U
 
+#define CMD_GET_M1_VELOCITY_PID  55U
+#define CMD_GET_M2_VELOCITY_PID  56U
+
 
 static uint16_t CRC16_Update(
     uint16_t crc,
@@ -298,6 +301,128 @@ static bool RoboClaw_Read4Status(
         *status =
             response[4];
     }
+
+
+    return true;
+}
+
+
+static bool RoboClaw_ReadVelocityPid(
+    uint8_t address,
+    uint8_t command,
+    RoboClaw_VelocityPid *pid
+)
+{
+    uint8_t request[2];
+    uint8_t response[18];
+
+    uint16_t crc = 0U;
+    uint16_t received_crc;
+
+    uint8_t i;
+
+    Lpuart_Uart_Ip_StatusType uart_status;
+
+
+    if (pid == NULL)
+    {
+        return false;
+    }
+
+
+    request[0] = address;
+    request[1] = command;
+
+
+    uart_status =
+        Lpuart_Uart_Ip_SyncSend(
+            ROBO_UART_INSTANCE,
+            request,
+            2U,
+            ROBO_UART_TIMEOUT
+        );
+
+
+    if (
+        uart_status !=
+        LPUART_UART_IP_STATUS_SUCCESS
+    )
+    {
+        return false;
+    }
+
+
+    uart_status =
+        Lpuart_Uart_Ip_SyncReceive(
+            ROBO_UART_INSTANCE,
+            response,
+            18U,
+            ROBO_UART_TIMEOUT
+        );
+
+
+    if (
+        uart_status !=
+        LPUART_UART_IP_STATUS_SUCCESS
+    )
+    {
+        return false;
+    }
+
+
+    crc =
+        CRC16_Update(
+            crc,
+            address
+        );
+
+    crc =
+        CRC16_Update(
+            crc,
+            command
+        );
+
+
+    for (i = 0U; i < 16U; i++)
+    {
+        crc =
+            CRC16_Update(
+                crc,
+                response[i]
+            );
+    }
+
+
+    received_crc =
+        ((uint16_t)response[16] << 8U) |
+        ((uint16_t)response[17]);
+
+
+    if (crc != received_crc)
+    {
+        return false;
+    }
+
+
+    pid->p_raw =
+        GetU32BE(
+            &response[0]
+        );
+
+    pid->i_raw =
+        GetU32BE(
+            &response[4]
+        );
+
+    pid->d_raw =
+        GetU32BE(
+            &response[8]
+        );
+
+    pid->qpps =
+        GetU32BE(
+            &response[12]
+        );
 
 
     return true;
@@ -619,6 +744,32 @@ bool RoboClaw_ReadSpeedM2(
         CMD_GET_M2_SPEED,
         speed,
         status
+    );
+}
+
+
+bool RoboClaw_ReadVelocityPidM1(
+    uint8_t address,
+    RoboClaw_VelocityPid *pid
+)
+{
+    return RoboClaw_ReadVelocityPid(
+        address,
+        CMD_GET_M1_VELOCITY_PID,
+        pid
+    );
+}
+
+
+bool RoboClaw_ReadVelocityPidM2(
+    uint8_t address,
+    RoboClaw_VelocityPid *pid
+)
+{
+    return RoboClaw_ReadVelocityPid(
+        address,
+        CMD_GET_M2_VELOCITY_PID,
+        pid
     );
 }
 

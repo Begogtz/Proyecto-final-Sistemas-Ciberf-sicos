@@ -11,6 +11,16 @@
 #define ROBOCLAW_B_ADDRESS  0x81U
 
 
+typedef struct
+{
+    uint32_t p_raw;
+    uint32_t i_raw;
+    uint32_t d_raw;
+    uint32_t qpps;
+
+} RoboClaw_VelocityPid;
+
+
 bool RoboClaw_ResetEncoders(
     uint8_t address
 );
@@ -66,6 +76,18 @@ bool RoboClaw_ReadSpeedM2(
     uint8_t address,
     uint32_t *speed,
     uint8_t *status
+);
+
+
+bool RoboClaw_ReadVelocityPidM1(
+    uint8_t address,
+    RoboClaw_VelocityPid *pid
+);
+
+
+bool RoboClaw_ReadVelocityPidM2(
+    uint8_t address,
+    RoboClaw_VelocityPid *pid
 );
 
 

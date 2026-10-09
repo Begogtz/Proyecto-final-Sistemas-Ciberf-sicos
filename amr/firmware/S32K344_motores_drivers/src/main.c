@@ -57,6 +57,100 @@ static void Debug_Send(
 }
 
 
+static void Debug_PrintPidValue(
+    const char *name,
+    uint32_t raw
+)
+{
+    uint32_t integer_part;
+    uint32_t fractional_part;
+
+    char msg[80];
+
+
+    integer_part =
+        raw / 65536U;
+
+
+    fractional_part =
+        (uint32_t)(
+            (
+                ((uint64_t)(raw % 65536U) * 100000ULL) +
+                32768ULL
+            ) /
+            65536ULL
+        );
+
+
+    if (fractional_part >= 100000U)
+    {
+        integer_part++;
+        fractional_part = 0U;
+    }
+
+
+    (void)snprintf(
+        msg,
+        sizeof(msg),
+        "%s=%lu.%05lu ",
+        name,
+        (unsigned long)integer_part,
+        (unsigned long)fractional_part
+    );
+
+
+    Debug_Send(msg);
+}
+
+
+static void Debug_PrintVelocityPid(
+    uint8_t address,
+    uint8_t motor,
+    const RoboClaw_VelocityPid *pid
+)
+{
+    char msg[100];
+
+
+    (void)snprintf(
+        msg,
+        sizeof(msg),
+        "RoboClaw 0x%02X M%u | ",
+        address,
+        motor
+    );
+
+
+    Debug_Send(msg);
+
+    Debug_PrintPidValue(
+        "P",
+        pid->p_raw
+    );
+
+    Debug_PrintPidValue(
+        "I",
+        pid->i_raw
+    );
+
+    Debug_PrintPidValue(
+        "D",
+        pid->d_raw
+    );
+
+
+    (void)snprintf(
+        msg,
+        sizeof(msg),
+        "QPPS=%lu\r\n",
+        (unsigned long)pid->qpps
+    );
+
+
+    Debug_Send(msg);
+}
+
+
 static int32_t SpeedSigned(
     uint32_t speed,
     uint8_t status
@@ -225,6 +319,11 @@ int main(void)
     uint16_t battery_a = 0U;
     uint16_t battery_b = 0U;
 
+    RoboClaw_VelocityPid pid_a1;
+    RoboClaw_VelocityPid pid_a2;
+    RoboClaw_VelocityPid pid_b1;
+    RoboClaw_VelocityPid pid_b2;
+
     uint32_t i;
 
     char msg[180];
@@ -331,6 +430,69 @@ int main(void)
 
 
     Debug_Send(msg);
+
+
+    /*
+     * Leer PID/QPPS de los cuatro motores.
+     */
+    if (
+        !RoboClaw_ReadVelocityPidM1(
+            ROBOCLAW_A_ADDRESS,
+            &pid_a1
+        )
+        ||
+        !RoboClaw_ReadVelocityPidM2(
+            ROBOCLAW_A_ADDRESS,
+            &pid_a2
+        )
+        ||
+        !RoboClaw_ReadVelocityPidM1(
+            ROBOCLAW_B_ADDRESS,
+            &pid_b1
+        )
+        ||
+        !RoboClaw_ReadVelocityPidM2(
+            ROBOCLAW_B_ADDRESS,
+            &pid_b2
+        )
+    )
+    {
+        Debug_Send(
+            "ERROR leyendo PID/QPPS\r\n"
+        );
+
+        goto error;
+    }
+
+
+    Debug_Send(
+        "\r\nPID/QPPS guardados en los RoboClaw:\r\n"
+    );
+
+
+    Debug_PrintVelocityPid(
+        ROBOCLAW_A_ADDRESS,
+        1U,
+        &pid_a1
+    );
+
+    Debug_PrintVelocityPid(
+        ROBOCLAW_A_ADDRESS,
+        2U,
+        &pid_a2
+    );
+
+    Debug_PrintVelocityPid(
+        ROBOCLAW_B_ADDRESS,
+        1U,
+        &pid_b1
+    );
+
+    Debug_PrintVelocityPid(
+        ROBOCLAW_B_ADDRESS,
+        2U,
+        &pid_b2
+    );
 
 
     /*
